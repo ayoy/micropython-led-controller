@@ -1,5 +1,6 @@
 import utime
 from machine import Pin, PWM
+from hls import rgb_to_hls, hls_to_rgb
 import pycom
 
 class Fader:
@@ -20,44 +21,43 @@ class Fader:
 
 
     def fade_in(self, red, green, blue):
-        cb = 0
-        step = 0.025
+        steps = 40
+
+        (h, l, s) = rgb_to_hls(red/255, green/255, blue/255)
+
+        lightness = 0
+        lstep = l/steps
 
         while True:
-            (r, g, b) = (
-                min(255,int(cb * red)),
-                min(255,int(cb * green)),
-                min(255,int(cb * blue))
-            )
-            self.pwm_r.duty_cycle(1-r/255)
-            self.pwm_g.duty_cycle(g/255)
-            self.pwm_b.duty_cycle(b/255)
-            print((r, g, b))
-            rgbled = (r<<16) + (g<<8) + b
+            (r, g, b) = hls_to_rgb(h, lightness, s)
+            self.pwm_r.duty_cycle(1-r)
+            self.pwm_g.duty_cycle(g)
+            self.pwm_b.duty_cycle(b)
+            print((int(r*255), int(g*255), int(b*255)))
+            rgbled = (int(r*255)<<16) + (int(g*255)<<8) + int(b*255)
             pycom.rgbled(rgbled)
-            if cb > 1:
+            if lightness > l:
                 break
-            cb = cb + step
+            lightness = lightness + lstep
             utime.sleep_ms(25)
 
 
     def fade_out(self, red, green, blue):
-        cb = 1
-        step = 0.005
+        steps = 200
+
+        (h, l, s) = rgb_to_hls(red/255, green/255, blue/255)
+
+        lstep = l/steps
 
         while True:
-            (r, g, b) = (
-                max(0, int(cb * red)),
-                max(0, int(cb * green)),
-                max(0, int(cb * blue))
-            )
-            self.pwm_r.duty_cycle(1-r/255)
-            self.pwm_g.duty_cycle(g/255)
-            self.pwm_b.duty_cycle(b/255)
-            print((r, g, b))
-            rgbled = (r<<16) + (g<<8) + b
+            (r, g, b) = hls_to_rgb(h, l, s)
+            self.pwm_r.duty_cycle(1-r)
+            self.pwm_g.duty_cycle(g)
+            self.pwm_b.duty_cycle(b)
+            print((int(r*255), int(g*255), int(b*255)))
+            rgbled = (int(r*255)<<16) + (int(g*255)<<8) + int(b*255)
             pycom.rgbled(rgbled)
-            if cb < 0:
+            if l < 0:
                 break
-            cb = cb - step
+            l = l - lstep
             utime.sleep_ms(25)
