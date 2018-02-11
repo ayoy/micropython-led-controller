@@ -8,12 +8,14 @@ class LEDStrip:
         self._g = pycom.nvs_get('green') or 20
         self._b = pycom.nvs_get('blue') or 40
         self._fading = pycom.nvs_get('fader') or False
-        self._fading_start = pycom.nvs_get('fading_start') or self.DISABLED
-        self._fading_stop = pycom.nvs_get('fading_stop') or self.DISABLED
+        self._schedule_start = pycom.nvs_get('schedule_start') or self.DISABLED
+        self._schedule_stop = pycom.nvs_get('schedule_stop') or self.DISABLED
+
 
     @property
     def enabled(self):
         return self.r > 0 and self.g > 0 and self.b > 0
+
 
     # red
     @property
@@ -59,24 +61,24 @@ class LEDStrip:
         self._fading = value
         pycom.nvs_set('fading', value)
 
-    # fading_stop (in minutes 0-1439)
+    # schedule_stop (in minutes 0-1439)
     @property
-    def fading_stop(self):
-        return self._fading_stop
+    def schedule_stop(self):
+        return self._schedule_stop
 
 
-    @fading_stop.setter
-    def fading_stop(self, value):
-        self._fading_stop = value
-        pycom.nvs_set('fading_stop', value)
+    @schedule_stop.setter
+    def schedule_stop(self, value):
+        self._schedule_stop = value
+        pycom.nvs_set('schedule_stop', value)
 
-    # fading_start (in minutes 0-1439)
+    # schedule_start (in minutes 0-1439)
     @property
-    def fading_start(self):
-        return self._fading_start
+    def schedule_start(self):
+        return self._schedule_start
 
 
-    @fading_start.setter
-    def fading_start(self, value):
-        self._fading_start = value
-        pycom.nvs_set('fading_start', value)
+    @schedule_start.setter
+    def schedule_start(self, value):
+        self._schedule_start = value
+        pycom.nvs_set('schedule_start', value)
