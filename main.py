@@ -5,12 +5,14 @@ from machine import Pin
 from _thread import start_new_thread
 from fade import Fader
 import utime
+from ledstrip import LEDStrip
 
 pycom.heartbeat(False)
 
+
 import usocket as socket
 
-(r, g, b) = (0, 0, 20)
+ledstrip = LEDStrip()
 fader = Fader(Pin('P22'), Pin('P21'), Pin('P23'))
 pir = Pin('P18', mode=Pin.IN, pull=None)
 
@@ -24,7 +26,7 @@ request_motion_stopped = False
 
 
 def leds(port):
-    global r, g, b, fader
+    global ledstrip
 
     s = socket.socket()
     ip_addr = WLAN().ifconfig()[0]
@@ -38,8 +40,8 @@ def leds(port):
         command = data.decode('utf8')
         print(command)
         if command == "WAT":
-            print('({},{},{}) {}'.format(r, g, b, fader.enabled))
-            conn.send(bytes([r, g, b, fader.enabled]))
+            print('({},{},{}) {}'.format(ledstrip.r, ledstrip.g, ledstrip.b, ledstrip.fading))
+            conn.send(bytes([ledstrip.r, ledstrip.g, ledstrip.b, ledstrip.fading]))
         elif command == "DIS":
             color = conn.recv(3)
             if len(color) == 3:
@@ -47,14 +49,14 @@ def leds(port):
                 g = color[1]
                 b = color[2]
                 color = (r<<16) + (g<<8) + b
-                print('({},{},{})'.format(r, g, b))
-                fader.set_color(r, g, b)
+                print('({},{},{})'.format(ledstrip.r, ledstrip.g, ledstrip.b))
+                fader.set_color(ledstrip.r, ledstrip.g, ledstrip.b)
                 # pycom.rgbled(color)
         elif command == "FAD":
             status = conn.recv(1)
             if len(status) == 1:
-                fader.enabled = status[0] > 0
-                print('fader enabled: {}'.format(fader.enabled))
+                ledstrip.fading = status[0] > 0
+                print('fader enabled: {}'.format(ledstrip.fading))
                 request_motion_stopped = True
 
         conn.close()
@@ -64,19 +66,21 @@ start_new_thread(leds, (4000,))
 
 
 def motion_started(fader):
-    global r, g, b
-    if fader.enabled is True and r > 0 and g > 0 and b > 0:
+    global ledstrip
+    if ledstrip.fading is True and ledstrip.enabled:
         print('fading in')
-        fader.fade_in(r, g, b)
+        fader.fade_in(ledstrip.r, ledstrip.g, ledstrip.b)
+
 
 def motion_stopped(fader):
-    global r, g, b
-    if r > 0 and g > 0 and b > 0:
+    global ledstrip
+    if ledstrip.enabled:
         print('fading out')
-        fader.fade_out(r, g, b)
+        fader.fade_out(ledstrip.r, ledstrip.g, ledstrip.b)
 
 
 def pir_handler(pir, fader):
+    global request_motion_stopped
     wait_for_rising = False
 
     while True:

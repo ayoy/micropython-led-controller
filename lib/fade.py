@@ -5,7 +5,6 @@ import pycom
 
 class Fader:
     def __init__(self, *args):
-        self.enabled = False
         self.pin_r = args[0]
         self.pin_g = args[1]
         self.pin_b = args[2]
