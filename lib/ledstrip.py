@@ -7,14 +7,14 @@ class LEDStrip:
         self._r = pycom.nvs_get('red') or 0
         self._g = pycom.nvs_get('green') or 20
         self._b = pycom.nvs_get('blue') or 40
-        self._fading = pycom.nvs_get('fader') or False
+        self._fading = pycom.nvs_get('fading') or False
         self._schedule_start = pycom.nvs_get('schedule_start') or self.DISABLED
         self._schedule_stop = pycom.nvs_get('schedule_stop') or self.DISABLED
 
 
     @property
     def enabled(self):
-        return self.r > 0 and self.g > 0 and self.b > 0
+        return self.r > 0 or self.g > 0 or self.b > 0
 
 
     # red

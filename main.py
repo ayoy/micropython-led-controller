@@ -1,7 +1,7 @@
 from helpers import *
 import pycom
 from network import WLAN
-from machine import Pin
+from machine import Pin, Timer
 from _thread import start_new_thread
 from fade import Fader
 import utime
@@ -14,7 +14,9 @@ import usocket as socket
 
 ledstrip = LEDStrip()
 fader = Fader(Pin('P22'), Pin('P21'), Pin('P23'))
+fader.set_color(ledstrip.r, ledstrip.g, ledstrip.b)
 pir = Pin('P18', mode=Pin.IN, pull=None)
+fadeout_timer = None
 
 request_motion_stopped = False
 
@@ -27,6 +29,7 @@ request_motion_stopped = False
 
 def leds(port):
     global ledstrip
+    global fader
 
     s = socket.socket()
     ip_addr = WLAN().ifconfig()[0]
@@ -62,11 +65,13 @@ def leds(port):
         elif command == "FAD":
             status = conn.recv(5)
             if len(status) == 5:
-                ledstrip.fading = status[0] > 0
+                fader_enabled = status[0] > 0
+                fader_changed = fader_enabled != ledstrip.fading
+                ledstrip.fading = fader_enabled
                 ledstrip.schedule_start = int.from_bytes(status[1:3], 'little')
                 ledstrip.schedule_end = int.from_bytes(status[3:5], 'little')
 
-                if ledstrip.schedule_start != -1 and ledstrip.schedule_end != -1:
+                if ledstrip.schedule_start < 1440 and ledstrip.schedule_end < 1440:
                     start_hour = int(ledstrip.schedule_start/60)
                     start_min = (ledstrip.schedule_start - 60*start_hour)
                     end_hour = int(ledstrip.schedule_end/60)
@@ -76,7 +81,12 @@ def leds(port):
                 else:
                     print('fader enabled: {}'.format(ledstrip.fading))
 
-                request_motion_stopped = True
+                if fader_changed:
+                    if ledstrip.fading:
+                        motion_stopped(fader)
+                        start_pir()
+                    else:
+                        stop_pir()
 
         conn.close()
 
@@ -84,11 +94,20 @@ def leds(port):
 start_new_thread(leds, (4000,))
 
 
+# =======================================
+
+
 def motion_started(fader):
     global ledstrip
-    if ledstrip.fading is True and ledstrip.enabled:
+    if ledstrip.fading and ledstrip.enabled:
         print('fading in')
         fader.fade_in(ledstrip.r, ledstrip.g, ledstrip.b)
+
+
+def fadeout_timer_handler(args):
+    fader = args[1]
+    motion_stopped(fader)
+    start_pir()
 
 
 def motion_stopped(fader):
@@ -98,33 +117,32 @@ def motion_stopped(fader):
         fader.fade_out(ledstrip.r, ledstrip.g, ledstrip.b)
 
 
-def pir_handler(pir, fader):
-    global request_motion_stopped
-    wait_for_rising = False
+def pir_handler(args):
+    global fadeout_timer
+    pir = args[0]
+    fader = args[1]
 
-    while True:
-        if request_motion_stopped is True:
-            request_motion_stopped = False
-            utime.sleep_ms(5000)
-            motion_stopped(fader)
-        else:
-            # print(pir())
-            if pir() is 0 and not wait_for_rising:
-                print('pir 0 #1')
-                utime.sleep_ms(500)
-                if pir() is 0:
-                    print('pir 0 #2')
-                    motion_started(fader)
-                    wait_for_rising = True
-            elif wait_for_rising and pir() is 1:
-                print('pir 1 #1')
-                utime.sleep_ms(500)
-                if pir() is 1:
-                    print('pir 1 #2')
-                    wait_for_rising = False
-                    motion_stopped(fader)
+    stop_pir()
 
-        machine.idle()
-        utime.sleep_ms(100)
+    pir_value = pir()
+    utime.sleep_ms(200)
+    if pir_value == pir() and pir_value is 0:
+        print('motion detected')
+        motion_started(fader)
+        fadeout_timer = Timer.Alarm(fadeout_timer_handler, 10, arg=args)
 
-pir_handler(pir, fader)
+
+def start_pir():
+    global pir
+    pir.callback(Pin.IRQ_FALLING, pir_handler, (pir, fader))
+
+def stop_pir():
+    global pir
+    global fadeout_timer
+    if fadeout_timer is not None:
+        fadeout_timer.cancel()
+        fadeout_timer = None
+    pir.callback(Pin.IRQ_FALLING, None)
+
+if ledstrip.fading:
+    start_pir()
