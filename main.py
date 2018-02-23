@@ -96,8 +96,13 @@ def motion_started():
         ledstrip.fade_in()
 
 
-def fadeout_timer_handler(alarm):
-    fade_out_and_start_pir()
+def fadeout_timer_handler(timer):
+    global pir
+    if pir() is not 0:
+        timer.cancel()
+        fade_out_and_start_pir()
+    else:
+        print('motion still present, not fading out')
 
 
 def motion_stopped():
@@ -117,7 +122,7 @@ def pir_handler(pir):
     if pir_value == pir() and pir_value is 0:
         print('motion detected')
         motion_started()
-        fadeout_timer = Timer.Alarm(fadeout_timer_handler, 10)
+        fadeout_timer = Timer.Alarm(fadeout_timer_handler, 10, periodic=True)
     else:
         print('false positive - motion not detected')
         start_pir()
