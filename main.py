@@ -76,8 +76,7 @@ def leds(port):
 
                 if fader_changed:
                     if ledstrip.fading:
-                        motion_stopped()
-                        start_pir()
+                        fade_out_and_start_pir()
                     else:
                         stop_pir()
 
@@ -98,8 +97,7 @@ def motion_started():
 
 
 def fadeout_timer_handler(alarm):
-    motion_stopped()
-    start_pir()
+    fade_out_and_start_pir()
 
 
 def motion_stopped():
@@ -130,6 +128,10 @@ def start_pir():
     print('starting PIR')
     pir.callback(Pin.IRQ_FALLING, pir_handler)
 
+def fade_out_and_start_pir():
+    motion_stopped()
+    start_pir()
+
 def stop_pir():
     global pir
     global fadeout_timer
@@ -140,6 +142,5 @@ def stop_pir():
     pir.callback(Pin.IRQ_FALLING, None)
 
 
-if ledstrip.fading:
-    motion_stopped()
-    start_pir()
+if ledstrip.fading and ledstrip.enabled:
+    fade_out_and_start_pir()
