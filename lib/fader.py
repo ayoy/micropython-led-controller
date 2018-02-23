@@ -5,26 +5,9 @@ import pycom
 
 class Fader:
     def __init__(self, *args):
-        self.pin_r = args[0]
-        self.pin_g = args[1]
-        self.pin_b = args[2]
-
-        self.pin_r.mode(Pin.OUT)
-        self.pin_g.mode(Pin.OUT)
-        self.pin_b.mode(Pin.OUT)
-
-        self.pwm = PWM(0, frequency=5000)
-
-        self.pwm_r = self.pwm.channel(0, pin=self.pin_r, duty_cycle=0)
-        self.pwm_g = self.pwm.channel(1, pin=self.pin_g, duty_cycle=0)
-        self.pwm_b = self.pwm.channel(2, pin=self.pin_b, duty_cycle=0)
-
-
-    def set_color(self, red, green, blue):
-        self.pwm_r.duty_cycle(red/255)
-        self.pwm_g.duty_cycle(green/255)
-        self.pwm_b.duty_cycle(blue/255)
-
+        self.pwm_r = args[0]
+        self.pwm_g = args[1]
+        self.pwm_b = args[2]
 
     def fade_in(self, red, green, blue):
         steps = 40
