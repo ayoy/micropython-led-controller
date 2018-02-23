@@ -18,8 +18,6 @@ fader.set_color(ledstrip.r, ledstrip.g, ledstrip.b)
 pir = Pin('P18', mode=Pin.IN, pull=None)
 fadeout_timer = None
 
-request_motion_stopped = False
-
 # Commands:
 #
 # WAT - get color + fader status
@@ -130,10 +128,14 @@ def pir_handler(args):
         print('motion detected')
         motion_started(fader)
         fadeout_timer = Timer.Alarm(fadeout_timer_handler, 10, arg=args)
+    else:
+        print('false positive - motion not detected')
+        start_pir()
 
 
 def start_pir():
     global pir
+    print('starting PIR')
     pir.callback(Pin.IRQ_FALLING, pir_handler, (pir, fader))
 
 def stop_pir():
@@ -142,7 +144,9 @@ def stop_pir():
     if fadeout_timer is not None:
         fadeout_timer.cancel()
         fadeout_timer = None
+    print('stopping PIR')
     pir.callback(Pin.IRQ_FALLING, None)
 
 if ledstrip.fading:
+    motion_stopped(fader)
     start_pir()
