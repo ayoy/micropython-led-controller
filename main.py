@@ -22,9 +22,7 @@ fadeout_timer = None
 # FAD - enable/disable Fader
 
 
-def leds(port):
-    global ledstrip
-
+def leds(port, ledstrip):
     s = socket.socket()
     ip_addr = WLAN().ifconfig()[0]
     s.bind((ip_addr, port))
@@ -83,7 +81,7 @@ def leds(port):
         conn.close()
 
 
-start_new_thread(leds, (4000,))
+start_new_thread(leds, (4000,ledstrip))
 
 
 # =======================================
