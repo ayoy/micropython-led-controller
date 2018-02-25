@@ -1,5 +1,5 @@
 import machine
-from keychain import *
+from keychain import WLAN_SSID, WLAN_PASSKEY
 from helpers import setup_rtc
 
 known_nets = [(WLAN_SSID, WLAN_PASSKEY)]
